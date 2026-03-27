@@ -48,7 +48,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 3. INTERFEJS ---
-st.title("🎨 MagicColor AI")
+st.title("https://buycoffee.to/magiccolor")
 st.write("<p style='text-align: center;'>Twoje studio unikalnych kolorowanek</p>", unsafe_allow_html=True)
 
 # Przycisk Kawy (Wpisz swój link poniżej!)
