@@ -131,4 +131,19 @@ with col2:
 
 # Stopka
 st.divider()
+# --- 5. STOPKA I REGULAMIN ---
+st.divider()
 st.markdown("<p style='text-align: center; color: #888;'>MagicColor AI v1.5 | Wykorzystuje Google Imagen 3</p>", unsafe_allow_html=True)
+
+with st.expander("⚖️ Regulamin i Polityka Prywatności"):
+    st.write("""
+    **1. O serwisie:** MagicColor AI to narzędzie demonstracyjne wykorzystujące sztuczną inteligencję Google do generowania kolorowanek.
+    
+    **2. Prywatność:** Nie zbieramy Twoich danych osobowych. Twoje opisy (prompty) są przesyłane do Google Cloud w celu wygenerowania obrazu. Nie przechowujemy Twoich zdjęć ani gotowych kolorowanek na naszym serwerze.
+    
+    **3. Prawa autorskie:** Wygenerowane kolorowanki są przeznaczone do użytku osobistego i domowego. Możesz je drukować dowolną ilość razy dla swoich dzieci.
+    
+    **4. Darowizny:** Przycisk 'Postaw mi kawę' jest dobrowolną darowizną na pokrycie kosztów serwerów AI i nie stanowi opłaty za konkretny produkt.
+    
+    **5. Odpowiedzialność:** AI może czasem wygenerować nietypowe kształty. Zawsze sprawdź rysunek przed podaniem go dziecku.
+    """)
