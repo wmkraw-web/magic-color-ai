@@ -7,31 +7,63 @@ st.set_page_config(page_title="Magic Color AI", page_icon="🎨", layout="center
 
 # --- NAGŁÓWEK ---
 st.title("Magic Color AI - Generator Kolorowanek 🎨")
-st.write("Wpisz, co chcesz pokolorować, a sztuczna inteligencja przygotuje dla Ciebie gotowy kontur do druku! Aplikacja jest w 100% darmowa.")
+st.write("Wpisz, co chcesz pokolorować, wybierz styl, a sztuczna inteligencja przygotuje gotowy kontur do druku! Aplikacja jest w 100% darmowa.")
 
-# --- POLE WPROWADZANIA ---
-prompt = st.text_input("Temat kolorowanki (np. Wesoły lisek w lesie, Księżniczka na zamku):")
+# --- FORMULARZ ---
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    prompt = st.text_input("Temat kolorowanki (np. Wesoły lisek, Zamek księżniczki):")
+
+with col2:
+    style_choice = st.selectbox(
+        "Wybierz styl i trudność:",
+        [
+            "👶 Dla maluchów (Bardzo proste)",
+            "🎈 Dla przedszkolaków (Rysunkowe)",
+            "🎒 Dla starszych (Realistyczne)",
+            "🌀 Mandale (Wzory relaksacyjne)"
+        ]
+    )
+
+# --- SŁOWNIK STYLÓW DLA AI ---
+# Tutaj tłumaczymy wybór użytkownika na specjalistyczne polecenia dla sztucznej inteligencji
+STYLE_PROMPTS = {
+    "👶 Dla maluchów (Bardzo proste)": "very simple thick outlines, minimal details, bold line art, easy coloring page for toddlers, no background clutter",
+    "🎈 Dla przedszkolaków (Rysunkowe)": "cute cartoon style, clear outlines, coloring book page for kids, friendly, clean background",
+    "🎒 Dla starszych (Realistyczne)": "detailed realistic line art, intricate outlines, educational coloring page, realistic proportions",
+    "🌀 Mandale (Wzory relaksacyjne)": "intricate symmetrical mandala pattern, zen tangle style, highly detailed circular line art, adult coloring book page"
+}
 
 # --- PRZYCISK GENEROWANIA ---
-if st.button("Generuj Kolorowankę", type="primary"):
+if st.button("Generuj Kolorowankę", type="primary", use_container_width=True):
     if prompt:
         with st.spinner("Trwa rysowanie magii... To potrwa kilka sekund ⏳"):
             
-            # 1. Magiczne słowa kluczowe wymuszające czarno-biały kontur (line art)
-            # Używamy języka angielskiego dla silnika AI, bo radzi sobie z nim najlepiej
-            full_prompt = f"{prompt}, black and white coloring page for kids, clean line art, simple outlines, no shading, pure white background, flat vector, coloring book style"
+            # 1. Pobieramy odpowiednie modyfikatory stylu
+            selected_style_modifier = STYLE_PROMPTS[style_choice]
             
-            # 2. Kodowanie tekstu do formatu URL (aby usunąć spacje i polskie znaki dla linku)
+            # 2. Bazowe zasady (absolutnie wymuszamy brak cieni i białe tło)
+            base_rules = "pure black and white coloring page, clean line art, absolutely no shading, no grayscale, pure white background, flat 2d vector"
+            
+            # 3. Składanie ostatecznego polecenia dla AI
+            # Jeśli to Mandala, modyfikujemy szyk zdania, żeby AI wiedziało, że ma połączyć temat z wzorem
+            if "Mandale" in style_choice:
+                full_prompt = f"{prompt} integrated into an {selected_style_modifier}, {base_rules}"
+            else:
+                full_prompt = f"{prompt}, {selected_style_modifier}, {base_rules}"
+            
+            # 4. Kodowanie tekstu do formatu URL
             encoded_prompt = urllib.parse.quote(full_prompt)
             
-            # 3. Losowy seed (ziarno) - dzięki temu wpisując drugi raz to samo, otrzymamy inny obrazek!
+            # 5. Losowy seed (ziarno) - każdy klik to nowy, unikalny rysunek!
             seed = random.randint(1, 1000000)
             
-            # 4. Generowanie linku z darmowego API Pollinations
+            # 6. Generowanie linku z darmowego API Pollinations
             image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}"
             
-            # 5. Wyświetlenie obrazka na ekranie
-            st.image(image_url, caption=f"Twoja kolorowanka: {prompt}", use_container_width=True)
+            # 7. Wyświetlenie obrazka
+            st.image(image_url, caption=f"Twoja kolorowanka: {prompt} ({style_choice})", use_container_width=True)
             
             st.success("Gotowe! Kliknij na obrazek prawym przyciskiem myszy (lub przytrzymaj palcem na telefonie) i wybierz 'Zapisz grafikę jako...', aby pobrać i wydrukować.")
     else:
