@@ -1,6 +1,7 @@
 import streamlit as st
 import urllib.parse
 import random
+import requests
 
 # --- KONFIGURACJA STRONY ---
 st.set_page_config(page_title="Magic Color AI", page_icon="🎨", layout="centered")
@@ -27,7 +28,6 @@ with col2:
     )
 
 # --- SŁOWNIK STYLÓW DLA AI ---
-# Tutaj tłumaczymy wybór użytkownika na specjalistyczne polecenia dla sztucznej inteligencji
 STYLE_PROMPTS = {
     "👶 Dla maluchów (Bardzo proste)": "very simple thick outlines, minimal details, bold line art, easy coloring page for toddlers, no background clutter",
     "🎈 Dla przedszkolaków (Rysunkowe)": "cute cartoon style, clear outlines, coloring book page for kids, friendly, clean background",
@@ -38,38 +38,42 @@ STYLE_PROMPTS = {
 # --- PRZYCISK GENEROWANIA ---
 if st.button("Generuj Kolorowankę", type="primary", use_container_width=True):
     if prompt:
-        with st.spinner("Trwa rysowanie magii... To potrwa kilka sekund ⏳"):
+        with st.spinner("Trwa rysowanie magii (włączono tryb Turbo)... ⏳"):
             
-            # 1. Pobieramy odpowiednie modyfikatory stylu
             selected_style_modifier = STYLE_PROMPTS[style_choice]
-            
-            # 2. Bazowe zasady (absolutnie wymuszamy brak cieni i białe tło)
             base_rules = "pure black and white coloring page, clean line art, absolutely no shading, no grayscale, pure white background, flat 2d vector"
             
-            # 3. Składanie ostatecznego polecenia dla AI
-            # Jeśli to Mandala, modyfikujemy szyk zdania, żeby AI wiedziało, że ma połączyć temat z wzorem
             if "Mandale" in style_choice:
                 full_prompt = f"{prompt} integrated into an {selected_style_modifier}, {base_rules}"
             else:
                 full_prompt = f"{prompt}, {selected_style_modifier}, {base_rules}"
             
-            # 4. Kodowanie tekstu do formatu URL
             encoded_prompt = urllib.parse.quote(full_prompt)
-            
-            # 5. Losowy seed (ziarno) - każdy klik to nowy, unikalny rysunek!
             seed = random.randint(1, 1000000)
             
-            # 6. Generowanie linku z darmowego API Pollinations
-            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}"
+            # NOWOŚĆ: Dodano &model=flux dla ekstremalnej szybkości!
+            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux"
             
-            # 7. Wyświetlenie obrazka
-            st.image(image_url, caption=f"Twoja kolorowanka: {prompt} ({style_choice})", use_container_width=True)
+            try:
+                # NOWOŚĆ: Przedstawiamy się jako prawdziwa przeglądarka (User-Agent), aby ominąć blokadę
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
+                response = requests.get(image_url, headers=headers, timeout=60)
+                
+                # Sprawdzamy czy na pewno pobraliśmy obrazek (a nie stronę błędu)
+                if response.status_code == 200 and 'image' in response.headers.get('Content-Type', ''):
+                    st.image(response.content, caption=f"Twoja kolorowanka: {prompt} ({style_choice})", use_container_width=True)
+                    st.success("Gotowe! Kliknij na obrazek prawym przyciskiem myszy (lub przytrzymaj palcem na telefonie) i wybierz 'Zapisz grafikę jako...', aby pobrać i wydrukować.")
+                else:
+                    st.error("Serwer AI zablokował zapytanie lub jest przeciążony. Spróbuj kliknąć Generuj jeszcze raz!")
             
-            st.success("Gotowe! Kliknij na obrazek prawym przyciskiem myszy (lub przytrzymaj palcem na telefonie) i wybierz 'Zapisz grafikę jako...', aby pobrać i wydrukować.")
+            except Exception as e:
+                st.error("Wystąpił błąd pobierania obrazka. Sprawdź połączenie z internetem i spróbuj ponownie.")
     else:
         st.warning("Najpierw wpisz temat kolorowanki w polu powyżej!")
 
-# --- SEKCJA WSPARCIA (SUBTELNA) ---
+# --- SEKCJA WSPARCIA ---
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 10px;'>
