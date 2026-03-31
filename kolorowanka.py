@@ -1,7 +1,7 @@
 import streamlit as st
 import urllib.parse
 import random
-import requests
+import streamlit.components.v1 as components
 
 # --- KONFIGURACJA STRONY ---
 st.set_page_config(page_title="Magic Color AI", page_icon="🎨", layout="centered")
@@ -38,42 +38,105 @@ STYLE_PROMPTS = {
 # --- PRZYCISK GENEROWANIA ---
 if st.button("Generuj Kolorowankę", type="primary", use_container_width=True):
     if prompt:
-        with st.spinner("Trwa rysowanie magii... W zależności od obciążenia serwerów może to potrwać do minuty ⏳"):
-            
-            selected_style_modifier = STYLE_PROMPTS[style_choice]
-            base_rules = "pure black and white coloring page, clean line art, absolutely no shading, no grayscale, pure white background, flat 2d vector"
-            
-            if "Mandale" in style_choice:
-                full_prompt = f"{prompt} integrated into an {selected_style_modifier}, {base_rules}"
-            else:
-                full_prompt = f"{prompt}, {selected_style_modifier}, {base_rules}"
-            
-            encoded_prompt = urllib.parse.quote(full_prompt)
-            seed = random.randint(1, 1000000)
-            
-            # Główny link do AI
-            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}"
-            
-            try:
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                }
-                # Zwiększony czas oczekiwania do 90 sekund
-                response = requests.get(image_url, headers=headers, timeout=90)
+        selected_style_modifier = STYLE_PROMPTS[style_choice]
+        base_rules = "pure black and white coloring page, clean line art, absolutely no shading, no grayscale, pure white background, flat 2d vector"
+        
+        if "Mandale" in style_choice:
+            full_prompt = f"{prompt} integrated into an {selected_style_modifier}, {base_rules}"
+        else:
+            full_prompt = f"{prompt}, {selected_style_modifier}, {base_rules}"
+        
+        encoded_prompt = urllib.parse.quote(full_prompt)
+        seed = random.randint(1, 1000000)
+        
+        # Link do AI z szybkim modelem
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux"
+        
+        # --- MAGIA HTML/JS: Aplikacja już się nie zawiesza. Wrzucamy ładowanie na barki przeglądarki! ---
+        html_code = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; padding: 10px; background-color: #ffffff; }}
+                #image-container {{ position: relative; display: inline-block; width: 100%; max-width: 800px; min-height: 350px; border: 2px dashed #cbd5e1; border-radius: 16px; padding: 20px; background-color: #f8fafc; transition: all 0.3s; }}
+                img {{ max-width: 100%; height: auto; border-radius: 8px; display: none; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); margin: 0 auto; }}
+                .loader {{ 
+                    border: 5px solid #e2e8f0; border-top: 5px solid #4f46e5; border-radius: 50%; 
+                    width: 50px; height: 50px; animation: spin 1s linear infinite;
+                    margin: 60px auto 20px auto;
+                }}
+                @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+                .btn-group {{ margin-top: 25px; display: none; gap: 15px; justify-content: center; }}
+                .btn {{ padding: 14px 28px; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }}
+                .btn-print {{ background-color: #4f46e5; color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }}
+                .btn-down {{ background-color: #10b981; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }}
+                .btn:hover {{ transform: translateY(-3px); opacity: 0.9; box-shadow: 0 6px 15px rgba(0,0,0,0.15); }}
                 
-                # Jeśli pobieranie w tle się udało
-                if response.status_code == 200 and 'image' in response.headers.get('Content-Type', ''):
-                    st.image(response.content, caption=f"Twoja kolorowanka: {prompt}", use_container_width=True)
-                    st.success("Gotowe! Kliknij na obrazek prawym przyciskiem myszy i wybierz 'Zapisz grafikę jako...', aby pobrać.")
-                else:
-                    # RZUTOWANIE BŁĘDU DO SEKCJI WYJĄTKÓW (AWARYJNEJ)
-                    raise Exception("Serwer zwrócił niepoprawne dane.")
-            
-            except Exception as e:
-                # KOŁO RATUNKOWE (Fallback): Jeśli Python nie dał rady, zmuszamy przeglądarkę do bezpośredniego załadowania linku
-                st.warning("Serwery AI są w tej chwili bardzo obciążone. Próbuję wczytać obrazek awaryjnie prosto do przeglądarki...")
-                st.image(image_url, caption=f"Twoja kolorowanka: {prompt} (Zaczekaj, aż się wczyta)", use_container_width=True)
-                st.info("Powyższy obrazek ładuje się bezpośrednio. Może to zająć chwilę.")
+                /* Ukryj przyciski i ramki podczas samego drukowania */
+                @media print {{
+                    .btn-group, #loading-text {{ display: none !important; }}
+                    #image-container {{ border: none; padding: 0; width: 100%; max-width: none; background-color: transparent; }}
+                    img {{ width: 100%; max-height: 98vh; object-fit: contain; display: block !important; box-shadow: none; }}
+                    body {{ padding: 0; margin: 0; }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div id="image-container">
+                <div id="loading-text">
+                    <div class="loader"></div>
+                    <h3 style="color: #1e293b; margin-bottom: 5px; font-size: 20px;">Sztuczna Inteligencja rysuje... 🎨</h3>
+                    <p style="color: #64748b; font-size: 14px; line-height: 1.5;">To skomplikowany proces, który może zająć <b>od 5 do 30 sekund</b>.<br>Obrazek pojawi się tutaj automatycznie. Proszę o cierpliwość!</p>
+                </div>
+                <img id="kolorowanka" src="{image_url}" alt="Kolorowanka" crossorigin="anonymous" onload="showImage()">
+            </div>
+
+            <div id="buttons" class="btn-group">
+                <button class="btn btn-print" onclick="window.print()">🖨️ Wydrukuj bezpośrednio</button>
+                <button class="btn btn-down" onclick="downloadImage()">💾 Pobierz na komputer</button>
+            </div>
+
+            <script>
+                // Funkcja wywoływana automatycznie, gdy obrazek się pobierze
+                function showImage() {{
+                    document.getElementById('loading-text').style.display = 'none';
+                    document.getElementById('kolorowanka').style.display = 'block';
+                    document.getElementById('image-container').style.border = 'none';
+                    document.getElementById('image-container').style.backgroundColor = 'transparent';
+                    document.getElementById('buttons').style.display = 'flex';
+                }}
+
+                // Funkcja pobierania
+                async function downloadImage() {{
+                    const img = document.getElementById('kolorowanka');
+                    try {{
+                        const response = await fetch(img.src);
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = 'kolorowanka.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                    }} catch (e) {{
+                        // Opcja zapasowa, gdyby serwer zablokował pobieranie w tle
+                        const a = document.createElement('a');
+                        a.href = img.src;
+                        a.download = 'kolorowanka.png';
+                        a.target = '_blank';
+                        a.click();
+                    }}
+                }}
+            </script>
+        </body>
+        </html>
+        """
+        # Wyświetlamy nasz nowy, sprytny moduł w aplikacji (wysokość 900px, by zmieścił przyciski i obrazek)
+        components.html(html_code, height=900, scrolling=False)
+        
     else:
         st.warning("Najpierw wpisz temat kolorowanki w polu powyżej!")
 
