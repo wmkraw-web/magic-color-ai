@@ -38,7 +38,7 @@ STYLE_PROMPTS = {
 # --- PRZYCISK GENEROWANIA ---
 if st.button("Generuj Kolorowankę", type="primary", use_container_width=True):
     if prompt:
-        with st.spinner("Trwa rysowanie magii (włączono tryb Turbo)... ⏳"):
+        with st.spinner("Trwa rysowanie magii... W zależności od obciążenia serwerów może to potrwać do minuty ⏳"):
             
             selected_style_modifier = STYLE_PROMPTS[style_choice]
             base_rules = "pure black and white coloring page, clean line art, absolutely no shading, no grayscale, pure white background, flat 2d vector"
@@ -51,25 +51,29 @@ if st.button("Generuj Kolorowankę", type="primary", use_container_width=True):
             encoded_prompt = urllib.parse.quote(full_prompt)
             seed = random.randint(1, 1000000)
             
-            # NOWOŚĆ: Dodano &model=flux dla ekstremalnej szybkości!
-            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux"
+            # Główny link do AI
+            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}"
             
             try:
-                # NOWOŚĆ: Przedstawiamy się jako prawdziwa przeglądarka (User-Agent), aby ominąć blokadę
                 headers = {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 }
-                response = requests.get(image_url, headers=headers, timeout=60)
+                # Zwiększony czas oczekiwania do 90 sekund
+                response = requests.get(image_url, headers=headers, timeout=90)
                 
-                # Sprawdzamy czy na pewno pobraliśmy obrazek (a nie stronę błędu)
+                # Jeśli pobieranie w tle się udało
                 if response.status_code == 200 and 'image' in response.headers.get('Content-Type', ''):
-                    st.image(response.content, caption=f"Twoja kolorowanka: {prompt} ({style_choice})", use_container_width=True)
-                    st.success("Gotowe! Kliknij na obrazek prawym przyciskiem myszy (lub przytrzymaj palcem na telefonie) i wybierz 'Zapisz grafikę jako...', aby pobrać i wydrukować.")
+                    st.image(response.content, caption=f"Twoja kolorowanka: {prompt}", use_container_width=True)
+                    st.success("Gotowe! Kliknij na obrazek prawym przyciskiem myszy i wybierz 'Zapisz grafikę jako...', aby pobrać.")
                 else:
-                    st.error("Serwer AI zablokował zapytanie lub jest przeciążony. Spróbuj kliknąć Generuj jeszcze raz!")
+                    # RZUTOWANIE BŁĘDU DO SEKCJI WYJĄTKÓW (AWARYJNEJ)
+                    raise Exception("Serwer zwrócił niepoprawne dane.")
             
             except Exception as e:
-                st.error("Wystąpił błąd pobierania obrazka. Sprawdź połączenie z internetem i spróbuj ponownie.")
+                # KOŁO RATUNKOWE (Fallback): Jeśli Python nie dał rady, zmuszamy przeglądarkę do bezpośredniego załadowania linku
+                st.warning("Serwery AI są w tej chwili bardzo obciążone. Próbuję wczytać obrazek awaryjnie prosto do przeglądarki...")
+                st.image(image_url, caption=f"Twoja kolorowanka: {prompt} (Zaczekaj, aż się wczyta)", use_container_width=True)
+                st.info("Powyższy obrazek ładuje się bezpośrednio. Może to zająć chwilę.")
     else:
         st.warning("Najpierw wpisz temat kolorowanki w polu powyżej!")
 
