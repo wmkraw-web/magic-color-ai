@@ -5,37 +5,55 @@ import urllib.parse
 # --- KONFIGURACJA STRONY ---
 st.set_page_config(page_title="Magic Color AI", page_icon="🎨", layout="centered")
 
+# --- INICJALIZACJA LICZNIKA SESJI ---
+if 'free_uses' not in st.session_state:
+    st.session_state.free_uses = 0
+
+MAX_FREE_USES = 3
+
 # --- NAGŁÓWEK ---
 st.title("🎨 Magic Color AI")
 st.markdown("#### Inteligentny Generator Kolorowanek dla Dzieci")
 st.write("Wpisz, co chcesz zobaczyć na kolorowance, a sztuczna inteligencja narysuje to w zaledwie 3 sekundy!")
 
 # --- KONTROLA DOSTĘPU (PREMIUM) ---
-st.sidebar.header("🔒 Odblokuj Magię")
+st.sidebar.header("🔒 Odblokuj Magię (PRO)")
 access_code = st.sidebar.text_input("Podaj kod Premium:", type="password")
 
 is_premium = False
 # Nasz ustalony tajny kod dostępu
 if access_code.upper() == "KAWA2024":
     is_premium = True
-    st.sidebar.success("Kod poprawny! Funkcje PRO odblokowane.")
+    st.sidebar.success("Kod poprawny! Nielimitowane generowanie odblokowane. 🎉")
 elif access_code:
-    st.sidebar.error("Nieprawidłowy kod. Postaw kawę autorowi, aby zdobyć dostęp!")
+    st.sidebar.error("Nieprawidłowy kod. Postaw kawę autorowi, aby zdobyć dożywotni dostęp!")
     
-st.sidebar.markdown("[☕ Postaw Kawę, aby otrzymać kod](https://buycoffee.to/magiccolor)")
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Jak to działa?**")
+st.sidebar.write(f"Każdy użytkownik może wygenerować {MAX_FREE_USES} darmowe kolorowanki na próbę.")
+st.sidebar.markdown("[☕ Postaw Kawę, aby otrzymać kod nielimitowany!](https://buycoffee.to/magiccolor)")
 
 # --- GŁÓWNY INTERFEJS ---
 prompt_input = st.text_area("O czym ma być kolorowanka?", placeholder="np. Wesoły dinozaur lecący rakietą w kosmos, sowa w okularach czytająca książkę...", height=100)
 
-if st.button("✨ Generuj Kolorowankę", type="primary", use_container_width=True):
-    if not is_premium:
-        st.warning("Ta funkcja generuje koszty serwerowe. Wymaga podania kodu Premium w panelu po lewej stronie.")
-    elif not prompt_input.strip():
+# Informacja o limitach
+if not is_premium:
+    pozostalo = MAX_FREE_USES - st.session_state.free_uses
+    if pozostalo > 0:
+        st.info(f"🎁 Pozostało Ci darmowych generacji: **{pozostalo} z {MAX_FREE_USES}**")
+    else:
+        st.error("🛑 Wykorzystałeś swój darmowy limit! Podaj kod Premium w panelu po lewej stronie, aby rysować bez ograniczeń.")
+
+# Blokujemy przycisk, jeśli darmowy limit się skończył i brak kodu premium
+button_disabled = (not is_premium) and (st.session_state.free_uses >= MAX_FREE_USES)
+
+if st.button("✨ Generuj Kolorowankę", type="primary", use_container_width=True, disabled=button_disabled):
+    if not prompt_input.strip():
         st.warning("Wpisz najpierw, co ma być na kolorowance!")
     else:
-        with st.spinner("Sztuczna Inteligencja szkicuje dla Ciebie... (To potrwa około 3-4 sekund) ⏳"):
+        with st.spinner("Sztuczna Inteligencja szkicuje dla Ciebie... ⏳"):
             try:
-                # 1. Tłumaczenie na język angielski (Lepsze zrozumienie przez AI)
+                # 1. Tłumaczenie na język angielski
                 translated_prompt = prompt_input
                 try:
                     trans_url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(prompt_input)}&langpair=pl|en"
@@ -45,7 +63,7 @@ if st.button("✨ Generuj Kolorowankę", type="primary", use_container_width=Tru
                         if trans_data and "responseData" in trans_data and "MYMEMORY WARNING" not in trans_data["responseData"]["translatedText"]:
                             translated_prompt = trans_data["responseData"]["translatedText"]
                 except Exception as e:
-                    pass # Jeśli tłumacz zawiedzie, system użyje polskiego tekstu
+                    pass 
 
                 # 2. Pobieranie tajnego hasła z sejfu Streamlit
                 fal_key = st.secrets.get("FAL_KEY")
@@ -58,13 +76,12 @@ if st.button("✨ Generuj Kolorowankę", type="primary", use_container_width=Tru
                     "Content-Type": "application/json"
                 }
                 
-                # Dodajemy modyfikatory zmuszające AI do zrobienia czystej kolorowanki
                 full_prompt = f"{translated_prompt}, black and white coloring page for kids, line art, simple outlines, pure white background, no shading, monochrome"
                 
                 payload = {
                     "prompt": full_prompt,
-                    "image_size": "portrait_4_3", # Kolorowanki idealnie pasują w formacie pionowym na kartkę A4
-                    "num_inference_steps": 4,     # Magia wersji Schnell - błyskawiczne generowanie
+                    "image_size": "portrait_4_3", 
+                    "num_inference_steps": 4,     
                     "num_images": 1,
                     "enable_safety_checker": True
                 }
@@ -79,7 +96,11 @@ if st.button("✨ Generuj Kolorowankę", type="primary", use_container_width=Tru
                     st.success("Gotowe! Oto Twoja unikalna kolorowanka:")
                     st.image(image_url, use_container_width=True)
                     
-                    # Przycisk do pobierania gotowego obrazka
+                    # Zliczanie zużycia dla darmowych kont
+                    if not is_premium:
+                        st.session_state.free_uses += 1
+                        
+                    # Przycisk do pobierania
                     img_response = requests.get(image_url)
                     if img_response.status_code == 200:
                         st.download_button(
@@ -89,8 +110,12 @@ if st.button("✨ Generuj Kolorowankę", type="primary", use_container_width=Tru
                             mime="image/jpeg",
                             use_container_width=True
                         )
+                        
+                    # Odświeżenie interfejsu by zaktualizować licznik
+                    st.rerun()
+
                 else:
-                    st.error(f"Błąd serwera generującego obrazek. Kod: {response.status_code}. Treść: {response.text}")
+                    st.error(f"Błąd serwera generującego obrazek. Treść: {response.text}")
 
             except Exception as e:
                 st.error(f"Wystąpił nieoczekiwany błąd aplikacji: {e}")
