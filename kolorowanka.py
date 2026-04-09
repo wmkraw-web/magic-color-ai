@@ -41,6 +41,14 @@ st.sidebar.markdown("[☕ Postaw Kawę, aby otrzymać kod nielimitowany!](https:
 # --- GŁÓWNY INTERFEJS ---
 prompt_input = st.text_area("O czym ma być kolorowanka?", placeholder="np. Wesoły dinozaur lecący rakietą w kosmos, sowa w okularach czytająca książkę...", height=100)
 
+# NOWOŚĆ: Opcje wiekowe dodane z powrotem
+age_group = st.selectbox(
+    "Poziom trudności (wiek dziecka):",
+    ["👶 Przedszkole (3-5 lat) - Grube kontury, bardzo proste", 
+     "🧒 Wczesnoszkolne (6-8 lat) - Standardowe", 
+     "👦 Starsze dzieci (9-12 lat) - Mnóstwo detali"]
+)
+
 # Informacja o limitach
 if not is_premium:
     pozostalo = MAX_FREE_USES - st.session_state.free_uses
@@ -81,7 +89,16 @@ if st.button("✨ Generuj Kolorowankę", type="primary", use_container_width=Tru
                     "Content-Type": "application/json"
                 }
                 
-                full_prompt = f"{translated_prompt}, black and white coloring page for kids, line art, simple outlines, pure white background, no shading, monochrome"
+                # NOWOŚĆ: Dopasowanie promptu (jakości i stylu obrazka) na podstawie wybranego wieku
+                if "3-5" in age_group:
+                    style_modifier = "very simple, extra thick bold black outlines, minimal details, easy to color for toddlers"
+                elif "6-8" in age_group:
+                    style_modifier = "clear black outlines, moderate details, standard coloring book style"
+                else:
+                    style_modifier = "highly detailed, intricate patterns, fine thin black outlines, advanced coloring page"
+
+                # Ekstremalnie wymuszony styl idealnej, czarno-białej kolorowanki
+                full_prompt = f"{translated_prompt}, {style_modifier}, strictly black and white line art, pure solid white background, completely uncolored, crisp black lines, absolutely no shading, no grayscale, flat 2d vector"
                 
                 payload = {
                     "prompt": full_prompt,
