@@ -96,8 +96,8 @@ if st.button("✨ Generuj Kolorowankę", type="primary", use_container_width=Tru
                 else:
                     style_modifier = "highly detailed, intricate patterns, fine thin black outlines, advanced coloring page"
 
-                # 4. MOCNY PROMPT (Skupienie na głównym temacie)
-                full_prompt = f"A coloring page of: {translated_prompt}. {style_modifier}. Strictly black and white line art, pure solid white background, completely uncolored, crisp black lines, absolutely no shading, no grayscale, flat 2d vector."
+                # 4. MOCNY PROMPT (Zmuszenie AI do słuchania)
+                full_prompt = f"A black and white coloring page. MAIN SUBJECT TO DRAW: {translated_prompt}. STRICT INSTRUCTION: You must clearly draw exactly the main subject, do not replace it with generic animals. STYLE: {style_modifier}. Pure solid white background, completely uncolored, crisp black lines, absolutely no shading, no grayscale, flat 2d vector."
                 
                 payload = {
                     "prompt": full_prompt,
