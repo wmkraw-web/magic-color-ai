@@ -5,9 +5,14 @@ import urllib.parse
 # --- KONFIGURACJA STRONY ---
 st.set_page_config(page_title="Magic Color AI", page_icon="🎨", layout="centered")
 
-# --- INICJALIZACJA LICZNIKA SESJI ---
+# --- INICJALIZACJA PAMIĘCI SESJI ---
+# Zapisujemy tu licznik ORAZ wygenerowany obrazek, żeby nie znikał po odświeżeniu
 if 'free_uses' not in st.session_state:
     st.session_state.free_uses = 0
+if 'current_image_url' not in st.session_state:
+    st.session_state.current_image_url = None
+if 'current_image_data' not in st.session_state:
+    st.session_state.current_image_data = None
 
 MAX_FREE_USES = 3
 
@@ -93,32 +98,41 @@ if st.button("✨ Generuj Kolorowankę", type="primary", use_container_width=Tru
                     data = response.json()
                     image_url = data["images"][0]["url"]
                     
-                    st.success("Gotowe! Oto Twoja unikalna kolorowanka:")
-                    st.image(image_url, use_container_width=True)
-                    
-                    # Zliczanie zużycia dla darmowych kont
-                    if not is_premium:
-                        st.session_state.free_uses += 1
-                        
-                    # Przycisk do pobierania
+                    # Zamiast od razu wyświetlać, ZAPISUJEMY obraz w pamięci aplikacji
                     img_response = requests.get(image_url)
                     if img_response.status_code == 200:
-                        st.download_button(
-                            label="💾 Pobierz Kolorowankę (Gotowa do druku)",
-                            data=img_response.content,
-                            file_name=f"kolorowanka_{prompt_input[:10].replace(' ', '_')}.jpg",
-                            mime="image/jpeg",
-                            use_container_width=True
-                        )
+                        st.session_state.current_image_url = image_url
+                        st.session_state.current_image_data = img_response.content
                         
-                    # Odświeżenie interfejsu by zaktualizować licznik
-                    st.rerun()
+                        # Zliczanie zużycia dla darmowych kont
+                        if not is_premium:
+                            st.session_state.free_uses += 1
+                            
+                        # Odświeżamy stronę, by zaktualizować licznik (obrazek teraz nie zniknie!)
+                        st.rerun()
+                    else:
+                        st.error("Udało się wygenerować obrazek, ale nie można go pobrać na ekran.")
 
                 else:
                     st.error(f"Błąd serwera generującego obrazek. Treść: {response.text}")
 
             except Exception as e:
                 st.error(f"Wystąpił nieoczekiwany błąd aplikacji: {e}")
+
+
+# --- SEKCJA WYŚWIETLANIA WYNIKÓW ---
+# Wyświetlamy obrazek z pamięci (poza głównym przyciskiem, dzięki czemu nie znika)
+if st.session_state.current_image_url and st.session_state.current_image_data:
+    st.success("Gotowe! Oto Twoja unikalna kolorowanka:")
+    st.image(st.session_state.current_image_url, use_container_width=True)
+    
+    st.download_button(
+        label="💾 Pobierz Kolorowankę (Gotowa do druku)",
+        data=st.session_state.current_image_data,
+        file_name="gotowa_kolorowanka.jpg",
+        mime="image/jpeg",
+        use_container_width=True
+    )
 
 st.write("---")
 st.caption("Pamiętaj: Wygenerowane grafiki są całkowicie unikalne, nie posiadają praw autorskich i możesz je swobodnie drukować i rozdawać dzieciom na zajęciach.")
